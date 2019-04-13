@@ -12,7 +12,7 @@ class QGrblTerminal(QtWidgets.QWidget):
         super(QtWidgets.QWidget, self).__init__(*args, **kwargs)
 
         self.serial = QSerialPort()
-        port = "/dev/ttyUSB0"
+        port = "/dev/grblserial"
         self.serial.setPortName(port)
         if self.serial.open(QtCore.QIODevice.ReadWrite):
             self.serial.setDataTerminalReady(True)
@@ -73,7 +73,7 @@ class QGPSTerminal(QtWidgets.QWidget):
         super(QtWidgets.QWidget, self).__init__(*args, **kwargs)
 
         self.serial = QSerialPort()
-        port = "/dev/ttyUSB0"
+        port = "/dev/gpsserial"
         self.serial.setPortName(port)
         if self.serial.open(QtCore.QIODevice.ReadWrite):
             self.serial.setDataTerminalReady(True)
@@ -176,8 +176,8 @@ class QApplication(QtWidgets.QApplication):
         self.main_layout = QtWidgets.QVBoxLayout(self.main_widget)
         self.qgps_terminal = QGPSTerminal(self.main_widget)
         self.main_layout.addWidget(self.qgps_terminal)
-        # self.qgrbl_terminal = QGrblTerminal(self.main_widget)
-        # self.main_layout.addWidget(self.qgrbl_terminal)
+        self.qgrbl_terminal = QGrblTerminal(self.main_widget)
+        self.main_layout.addWidget(self.qgrbl_terminal)
 
         self.main_window.show()
         
