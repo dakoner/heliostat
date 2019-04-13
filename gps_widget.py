@@ -4,16 +4,9 @@ import sys
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtSerialPort import QSerialPort
 
-class QApplication(QtWidgets.QApplication):
+class QGPSTerminal(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
-        super(QApplication, self).__init__(*args, **kwargs)
-
-        self.main_window = QtWidgets.QMainWindow(parent=None)
-
-        self.main_frame = QtWidgets.QFrame(self.main_window)
-        self.main_window.setCentralWidget(self.main_frame)
-        self.main_window.show()
-        self.layout = QtWidgets.QVBoxLayout(self.main_frame)
+        super(QtWidgets.QWidget, self).__init__(*args, **kwargs)
 
         self.serial = QSerialPort()
         port = "/dev/ttyUSB1"
@@ -32,9 +25,8 @@ class QApplication(QtWidgets.QApplication):
         self.text.setMinimumHeight(250)
         self.text.setFont(font)
         self.text.setReadOnly(True)
+        self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.addWidget(self.text)
-        
-        self.buffer = None
 
     def on_text_changed(self):
         print("on_text_changed")
@@ -47,6 +39,17 @@ class QApplication(QtWidgets.QApplication):
             if (msg.sentence_type == 'GGA'):
                 print(msg.latitude, msg.longitude)
             self.text.appendPlainText(decoded.strip())
+
+class QApplication(QtWidgets.QApplication):
+    def __init__(self, *args, **kwargs):
+        super(QApplication, self).__init__(*args, **kwargs)
+
+        self.main_window = QtWidgets.QMainWindow(parent=None)
+        self.qgps_terminal = QGPSTerminal(self.main_window)
+        self.main_window.setCentralWidget(self.qgps_terminal)
+        
+        self.main_window.show()
+        
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
