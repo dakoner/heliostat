@@ -1,5 +1,6 @@
 from enum import Enum
 import pynmea2
+import PySpin
 import signal
 import sys
 from PyQt5 import QtGui, QtCore, QtWidgets
@@ -17,13 +18,166 @@ class State(Enum):
     MANUAL = 4
 
 
+
+class PySpinCamera:
+    def __init__(self):
+        # Retrieve singleton reference to system object
+        self.system = PySpin.System.GetInstance()
+        self.cam_list = self.system.GetCameras()
+        num_cameras = self.cam_list.GetSize()
+        print('Number of cameras detected: %d' % num_cameras)
+        if num_cameras == 0:
+            self.cam_list.Clear()
+            self.system.ReleaseInstance()
+            raise RuntimeError("Not enough cameras")
+
+        self.cam = self.cam_list[0]
+        self.nodemap_tldevice = self.cam.GetTLDeviceNodeMap()
+        self.cam.Init()
+        self.nodemap = self.cam.GetNodeMap()
+        
+    def enter_acquisition_mode(self):
+        node_acquisition_mode = PySpin.CEnumerationPtr(self.nodemap.GetNode('AcquisitionMode'))
+        if not PySpin.IsAvailable(node_acquisition_mode) or not PySpin.IsWritable(node_acquisition_mode):
+            print('Unable to set acquisition mode to continuous (enum retrieval). Aborting...')
+            return False
+        node_acquisition_mode_continuous = node_acquisition_mode.GetEntryByName('Continuous')
+        if not PySpin.IsAvailable(node_acquisition_mode_continuous) or not PySpin.IsReadable(node_acquisition_mode_continuous):
+            print('Unable to set acquisition mode to continuous (entry retrieval). Aborting...')
+            return False
+        acquisition_mode_continuous = node_acquisition_mode_continuous.GetValue()
+        node_acquisition_mode.SetIntValue(acquisition_mode_continuous)
+        print('Acquisition mode set to continuous...')
+        self.cam.BeginAcquisition()
+
+    def acquire_image(self):
+        image_result = self.cam.GetNextImage()
+        if image_result.IsIncomplete():
+            print('Image incomplete with image status %d ...' % image_result.GetImageStatus())
+        else:
+            width = image_result.GetWidth()
+            height = image_result.GetHeight()
+            stride = image_result.GetStride()
+            d = image_result.GetData()
+            image = QtGui.QImage(d, width, height, stride, QtGui.QImage.Format_Indexed8)
+            # image = image.scaledToHeight(512)
+            return image
+
+    def leave_acquisition_mode(self):
+        self.cam.EndAcquisition()
+
+    def __del__(self):
+        self.reset_exposure()
+        self.cam.DeInit()
+        del self.cam
+        self.cam_list.Clear()
+        self.system.ReleaseInstance()
+
+
+    def configure_exposure(self, value):
+        try:
+            result = True
+            # Turn off automatic exposure mode
+            if self.cam.ExposureAuto.GetAccessMode() != PySpin.RW:
+                print('Unable to disable automatic exposure. Aborting...')
+                return False
+
+            self.cam.ExposureAuto.SetValue(PySpin.ExposureAuto_Off)
+            print('Automatic exposure disabled...')
+
+            # Set exposure time manually; exposure time recorded in microseconds
+            if self.cam.ExposureTime.GetAccessMode() != PySpin.RW:
+                print('Unable to set exposure time. Aborting...')
+                return False
+
+            # Ensure desired exposure time does not exceed the maximum
+            exposure_time_to_set = value
+            exposure_time_to_set = min(self.cam.ExposureTime.GetMax(), exposure_time_to_set)
+            self.cam.ExposureTime.SetValue(exposure_time_to_set)
+
+        except PySpin.SpinnakerException as ex:
+            print('Error: %s' % ex)
+            result = False
+
+        return result
+
+    def reset_exposure(self):
+        """
+        This function returns the camera to a normal state by re-enabling automatic exposure.
+
+        :return: True if successful, False otherwise.
+        :rtype: bool
+        """
+        try:
+            result = True
+
+            # Turn automatic exposure back on
+            #
+            # *** NOTES ***
+            # Automatic exposure is turned on in order to return the camera to its
+            # default state.
+
+            if self.cam.ExposureAuto.GetAccessMode() != PySpin.RW:
+                print('Unable to enable automatic exposure (node retrieval). Non-fatal error...')
+                return False
+
+            self.cam.ExposureAuto.SetValue(PySpin.ExposureAuto_Continuous)
+
+            print('Automatic exposure enabled...')
+
+        except PySpin.SpinnakerException as ex:
+            print('Error: %s' % ex)
+            result = False
+
+        return result
+
+
+class SpinWidget(QtWidgets.QWidget):
+    def __init__(self, *args, **kwargs):
+        super(SpinWidget, self).__init__(*args, **kwargs)
+
+        self.layout = QtWidgets.QVBoxLayout(self)
+
+        self.label = QtWidgets.QLabel()
+        self.layout.addWidget(self.label)
+
+        self.camera = PySpinCamera()
+        self.camera.enter_acquisition_mode()
+
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.camera_callback)
+        self.timer.start(0) 
+        
+        self.sp = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.sp.valueChanged.connect(self.exposure_change)
+        self.sp.setMinimum(0)
+        self.sp.setMaximum(50000)
+        self.sp.setValue(0)
+        self.sp.setTickPosition(QtWidgets.QSlider.TicksBelow)
+        self.sp.setTickInterval(5000)
+        self.layout.addWidget(self.sp)
+
+    def exposure_change(self, value):
+        if value == 0:
+            print("enable auto")
+            self.camera.reset_exposure()
+        else:
+            print('set exposure time to', value)
+            self.camera.configure_exposure(value)
+        return True
+
+    def camera_callback(self):
+        image = self.camera.acquire_image()
+        pixmap = QtGui.QPixmap.fromImage(image)
+        self.label.setPixmap(pixmap.scaledToHeight(512))
+
+
 class StateMachine:
-    def __init__(self, state_label, qgrbl_terminal, qgps_info, grbl_state_label):
+    def __init__(self, state_label, qgrbl_terminal, qgps_info):
         self.state_label = state_label
         self.qgrbl_terminal = qgrbl_terminal
         self.qgrbl_terminal.state_machine = self
         self.qgps_info = qgps_info
-        self.grbl_state_label = grbl_state_label
         self.setState(State.INITIAL)
 
         self.timer = QtCore.QTimer()
@@ -35,32 +189,43 @@ class StateMachine:
         self.state_label.setText(str(self.state))
 
     def gotLine(self, line):
+        if line.startswith("<"):
+            s = line[1:-1].split("|")
+            state = s[0]
+            mpos = s[1]
+            ps = mpos.split(":")
+            xpos, ypos, zpos = ps[1].split(",")
+            sw = s[2]
+            self.qgrbl_terminal.state_label.setText(state)
+            self.qgrbl_terminal.pos_x_value.setText(xpos)
+            self.qgrbl_terminal.pos_y_value.setText(ypos)
+
         if self.state == State.INITIAL:
-            if line == "[MSG:'$H'|'$X' to unlock]":
-                self.setState(State.HOMING)
-                self.qgrbl_terminal.send_line("$H")
+            pass
+            # if line == "[MSG:'$H'|'$X' to unlock]":
+            #     self.setState(State.HOMING)
+            #     self.qgrbl_terminal.send_line("$H")
         elif self.state == State.HOMING and line == 'ok':
-            self.setState(State.TRACKING)
-        elif self.state == State.TRACKING and line.startswith("<"):
-            self.grbl_state_label.setText(line)
+            self.setState(State.HOMED)
 
     def tick(self):
+        if self.state != State.HOMING:
+            cmd = "?"
+            self.qgrbl_terminal.send_line(cmd)
         if self.state == State.TRACKING:
             az = self.qgps_info.altaz_az_value.text()
             alt = self.qgps_info.altaz_alt_value.text()
             if az == '' or alt == '':
                 print("No valid az or alt")
             try:
-                xaz = - (90+float(az))
-                xalt = -(90-float(alt))
+                pos_x = - (90+float(az))
+                pos_y = -(90-float(alt))
             except ValueError:
                 print("No valid az or alt")
             else:
-                cmd = "G0 X%.3f" % xaz
+                cmd = "G0 X%.3f" % pos_x
                 self.qgrbl_terminal.send_line(cmd)
-                cmd = "G0 Y%.3f" % xalt
-                self.qgrbl_terminal.send_line(cmd)
-                cmd = "?"
+                cmd = "G0 Y%.3f" % pos_y
                 self.qgrbl_terminal.send_line(cmd)
         
 class QGrblTerminal(QtWidgets.QWidget):
@@ -81,7 +246,7 @@ class QGrblTerminal(QtWidgets.QWidget):
         font = QtGui.QFont("nonexistent")
         font.setStyleHint(QtGui.QFont.Monospace)
         self.text.setMinimumWidth(500)
-        self.text.setMinimumHeight(250)
+        self.text.setMinimumHeight(150)
         self.text.setFont(font)
         self.text.setReadOnly(True)
 
@@ -92,6 +257,34 @@ class QGrblTerminal(QtWidgets.QWidget):
         self.input.setMinimumWidth(500)
         self.input.returnPressed.connect(self.line_entered)
         self.layout.addWidget(self.input)
+
+        f = QtGui.QFont(self.font())
+        f.setPointSize(36)
+
+        self.info_layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(self.info_layout)
+        
+        self.state_label = QtWidgets.QLabel(self)
+        self.state_label.setFont(f)
+        self.info_layout.addWidget(self.state_label)
+        
+        self.pos_x_label = QtWidgets.QLabel(self)
+        self.pos_x_label.setText('PosX')
+        self.pos_x_label.setFont(f)
+        self.info_layout.addWidget(self.pos_x_label)
+
+        self.pos_x_value = QtWidgets.QLabel(self)
+        self.pos_x_value.setFont(f)
+        self.info_layout.addWidget(self.pos_x_value)
+
+        self.pos_y_label = QtWidgets.QLabel(self)
+        self.pos_y_label.setText('PosY')
+        self.pos_y_label.setFont(f)
+        self.info_layout.addWidget(self.pos_y_label)
+
+        self.pos_y_value = QtWidgets.QLabel(self)
+        self.pos_y_value.setFont(f)
+        self.info_layout.addWidget(self.pos_y_value)
 
         self.buffer = None
         self.state_machine = None
@@ -214,20 +407,84 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__(*args, **kwargs)
 
         self.state_label = QtWidgets.QLabel(self)
-        self.grbl_state_label = QtWidgets.QLabel(self)
         self.qgps_info = QGPSInfo(self)
         self.qgrbl_terminal = QGrblTerminal(self)
-        self.state_machine = StateMachine(self.state_label, self.qgrbl_terminal, self.qgps_info, self.grbl_state_label)
+        self.spin_widget = SpinWidget(self)
+        self.state_machine = StateMachine(self.state_label, self.qgrbl_terminal, self.qgps_info)
 
         self.main_widget = QtWidgets.QWidget(self)
         self.main_layout = QtWidgets.QVBoxLayout(self.main_widget)
         self.main_layout.addWidget(self.qgps_info)
         self.main_layout.addWidget(self.qgrbl_terminal)
         self.main_layout.addWidget(self.state_label)
-        self.main_layout.addWidget(self.grbl_state_label)
+        self.main_layout.addWidget(self.spin_widget)
 
+        self.button_layout = QtWidgets.QHBoxLayout()
+        self.home_button = QtWidgets.QPushButton("Home")
+        self.home_button.clicked.connect(self.home_clicked)
+        self.button_layout.addWidget(self.home_button)
+        self.track_button = QtWidgets.QPushButton("Track")
+        self.track_button.clicked.connect(self.track_clicked)
+        self.button_layout.addWidget(self.track_button)
+        self.up_button = QtWidgets.QPushButton("Up")
+        self.up_button.clicked.connect(self.up_clicked)
+        self.button_layout.addWidget(self.up_button)
+        self.down_button = QtWidgets.QPushButton("Down")
+        self.down_button.clicked.connect(self.down_clicked)
+        self.button_layout.addWidget(self.down_button)
+        self.left_button = QtWidgets.QPushButton("Left")
+        self.left_button.clicked.connect(self.left_clicked)
+        self.button_layout.addWidget(self.left_button)
+        self.right_button = QtWidgets.QPushButton("Right")
+        self.right_button.clicked.connect(self.right_clicked)
+        self.button_layout.addWidget(self.right_button)
+        self.main_layout.addLayout(self.button_layout)
         self.setCentralWidget(self.main_widget)
 
+    def home_clicked(self, *args, **kwargs):
+        print("home_clicked")
+        self.state_machine.setState(State.HOMING)
+        self.qgrbl_terminal.send_line("$H")
+
+    def track_clicked(self, *args, **kwargs):
+        print("track_clicked")
+        self.state_machine.setState(State.TRACKING)
+
+    def up_clicked(self, *args, **kwargs):
+        print("up_clicked")
+        self.state_machine.setState(State.MANUAL)
+        pos_y = float(self.qgrbl_terminal.pos_y_value.text())
+        pos_y += 1
+        self.qgrbl_terminal.pos_y_value.setText(str(pos_y))
+        cmd = "G0 Y%.3f" % pos_y
+        self.qgrbl_terminal.send_line(cmd)
+        
+    def down_clicked(self, *args, **kwargs):
+        print("down_clicked")
+        self.state_machine.setState(State.MANUAL)
+        pos_y = float(self.qgrbl_terminal.pos_y_value.text())
+        pos_y -= 1
+        self.qgrbl_terminal.pos_y_value.setText(str(pos_y))
+        cmd = "G0 Y%.3f" % pos_y
+        self.qgrbl_terminal.send_line(cmd)
+
+    def left_clicked(self, *args, **kwargs):
+        print("left_clicked")
+        self.state_machine.setState(State.MANUAL)
+        pos_x = float(self.qgrbl_terminal.pos_x_value.text())
+        pos_x -= 1
+        self.qgrbl_terminal.pos_x_value.setText(str(pos_x))
+        cmd = "G0 X%.3f" % pos_x
+        self.qgrbl_terminal.send_line(cmd)
+
+    def right_clicked(self, *args, **kwargs):
+        print("right_clicked")
+        self.state_machine.setState(State.MANUAL)
+        pos_x = float(self.qgrbl_terminal.pos_x_value.text())
+        pos_x += 1
+        self.qgrbl_terminal.pos_x_value.setText(str(pos_x))
+        cmd = "G0 X%.3f" % pos_x
+        self.qgrbl_terminal.send_line(cmd)
         
         
         
