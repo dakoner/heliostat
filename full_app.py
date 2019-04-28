@@ -209,7 +209,7 @@ class StateMachine:
             self.setState(State.HOMED)
 
     def tick(self):
-        if self.state != State.HOMING:
+        if self.state != State.HOMING and self.state != State.INITIAL:
             cmd = "?"
             self.qgrbl_terminal.send_line(cmd)
         if self.state == State.TRACKING:
@@ -395,12 +395,13 @@ class QGPSInfo(QtWidgets.QWidget):
             decoded = line.data().decode('US_ASCII')
             msg = pynmea2.parse(decoded)
             if (msg.sentence_type == 'RMC'):
-                self.latlon_lat_value.setText("%8.3f" % msg.latitude)
-                self.latlon_lon_value.setText("%8.3f" % msg.longitude)
-                self.latlon_timestamp_value.setText("%s" % (msg.datetime))
-                result = getSunPos(msg.latitude, msg.longitude, msg.datetime)
-                self.altaz_alt_value.setText("%8.3f" % result.alt.degree)
-                self.altaz_az_value.setText("%8.3f" % result.az.degree)
+                if msg.latitude != 0.0 and msg.longitude != 0.0:
+                    self.latlon_lat_value.setText("%8.3f" % msg.latitude)
+                    self.latlon_lon_value.setText("%8.3f" % msg.longitude)
+                    self.latlon_timestamp_value.setText("%s" % (msg.datetime))
+                    result = getSunPos(msg.latitude, msg.longitude, msg.datetime)
+                    self.altaz_alt_value.setText("%8.3f" % result.alt.degree)
+                    self.altaz_az_value.setText("%8.3f" % result.az.degree)
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
