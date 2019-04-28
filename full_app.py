@@ -338,6 +338,8 @@ class QGPSInfo(QtWidgets.QWidget):
 
         self.layout = QtWidgets.QVBoxLayout(self)
 
+        self.timestamp_layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(self.timestamp_layout)
         self.latlon_layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(self.latlon_layout)
         self.altaz_layout = QtWidgets.QHBoxLayout()
@@ -345,6 +347,16 @@ class QGPSInfo(QtWidgets.QWidget):
 
         f = QtGui.QFont(self.font())
         f.setPointSize(36)
+
+
+        self.timestamp_label = QtWidgets.QLabel(self)
+        self.timestamp_label.setText('ts')
+        self.timestamp_label.setFont(f)
+        self.timestamp_layout.addWidget(self.timestamp_label)
+
+        self.timestamp_value = QtWidgets.QLabel(self)
+        self.timestamp_value.setFont(f)
+        self.timestamp_layout.addWidget(self.timestamp_value)
 
         self.latlon_lat_label = QtWidgets.QLabel(self)
         self.latlon_lat_label.setText('lat')
@@ -363,15 +375,6 @@ class QGPSInfo(QtWidgets.QWidget):
         self.latlon_lon_value = QtWidgets.QLabel(self)
         self.latlon_lon_value.setFont(f)
         self.latlon_layout.addWidget(self.latlon_lon_value)
-
-        self.latlon_timestamp_label = QtWidgets.QLabel(self)
-        self.latlon_timestamp_label.setText('ts')
-        self.latlon_timestamp_label.setFont(f)
-        self.latlon_layout.addWidget(self.latlon_timestamp_label)
-
-        self.latlon_timestamp_value = QtWidgets.QLabel(self)
-        self.latlon_timestamp_value.setFont(f)
-        self.latlon_layout.addWidget(self.latlon_timestamp_value)
 
         self.altaz_alt_label = QtWidgets.QLabel(self)
         self.altaz_alt_label.setText('alt')
@@ -400,7 +403,7 @@ class QGPSInfo(QtWidgets.QWidget):
                 if msg.latitude != 0.0 and msg.longitude != 0.0:
                     self.latlon_lat_value.setText("%8.3f" % msg.latitude)
                     self.latlon_lon_value.setText("%8.3f" % msg.longitude)
-                    self.latlon_timestamp_value.setText("%s" % (msg.datetime))
+                    self.timestamp_value.setText("%s" % (msg.datetime))
                     result = getSunPos(msg.latitude, msg.longitude, msg.datetime)
                     self.altaz_alt_value.setText("%8.3f" % result.alt.degree)
                     self.altaz_az_value.setText("%8.3f" % result.az.degree)
@@ -422,9 +425,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_layout = QtWidgets.QVBoxLayout(self.main_widget)
         self.main_layout.addWidget(self.qgps_info)
         self.main_layout.addWidget(self.state_label)
-        self.main_layout.addWidget(self.qgrbl_terminal)
 
-        self.view_layout = QtWidgets.QHBoxLayout(self.main_widget)
+        self.view_layout = QtWidgets.QHBoxLayout()
         self.main_layout.addLayout(self.view_layout)
         self.view_layout.addWidget(self.spin_widget)
 
@@ -448,6 +450,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.right_button.clicked.connect(self.right_clicked)
         self.button_layout.addWidget(self.right_button)
         self.view_layout.addLayout(self.button_layout)
+
+        self.main_layout.addWidget(self.qgrbl_terminal)
+
         self.setCentralWidget(self.main_widget)
 
     def home_clicked(self, *args, **kwargs):
