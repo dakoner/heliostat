@@ -423,9 +423,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_layout.addWidget(self.qgps_info)
         self.main_layout.addWidget(self.state_label)
         self.main_layout.addWidget(self.qgrbl_terminal)
-        self.main_layout.addWidget(self.spin_widget)
 
-        self.button_layout = QtWidgets.QHBoxLayout()
+        self.view_layout = QtWidgets.QHBoxLayout(self.main_widget)
+        self.main_layout.addLayout(self.view_layout)
+        self.view_layout.addWidget(self.spin_widget)
+
+        self.button_layout = QtWidgets.QVBoxLayout()
         self.home_button = QtWidgets.QPushButton("Home")
         self.home_button.clicked.connect(self.home_clicked)
         self.button_layout.addWidget(self.home_button)
@@ -444,7 +447,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.right_button = QtWidgets.QPushButton("Right")
         self.right_button.clicked.connect(self.right_clicked)
         self.button_layout.addWidget(self.right_button)
-        self.main_layout.addLayout(self.button_layout)
+        self.view_layout.addLayout(self.button_layout)
         self.setCentralWidget(self.main_widget)
 
     def home_clicked(self, *args, **kwargs):
