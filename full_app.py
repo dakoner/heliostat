@@ -186,7 +186,7 @@ class StateMachine:
 
     def setState(self, state):
         self.state = state
-        self.state_label.setText(str(self.state))
+        self.state_label.setText(self.state.name)
 
     def gotLine(self, line):
         if line.startswith("<"):
@@ -240,23 +240,8 @@ class QGrblTerminal(QtWidgets.QWidget):
             self.serial.setBaudRate(115200)
             self.serial.readyRead.connect(self.on_serial_read)
 
-        self.text = QtWidgets.QPlainTextEdit()
-        self.text.setLineWrapMode(QtWidgets.QPlainTextEdit.NoWrap)
-        self.text.setWordWrapMode(QtGui.QTextOption.NoWrap)
-        font = QtGui.QFont("nonexistent")
-        font.setStyleHint(QtGui.QFont.Monospace)
-        self.text.setMinimumWidth(500)
-        self.text.setMinimumHeight(150)
-        self.text.setFont(font)
-        self.text.setReadOnly(True)
 
         self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.addWidget(self.text)
-        
-        self.input = QtWidgets.QLineEdit()
-        self.input.setMinimumWidth(500)
-        self.input.returnPressed.connect(self.line_entered)
-        self.layout.addWidget(self.input)
 
         f = QtGui.QFont(self.font())
         f.setPointSize(36)
@@ -285,6 +270,23 @@ class QGrblTerminal(QtWidgets.QWidget):
         self.pos_y_value = QtWidgets.QLabel(self)
         self.pos_y_value.setFont(f)
         self.info_layout.addWidget(self.pos_y_value)
+
+        font = QtGui.QFont("nonexistent")
+        font.setStyleHint(QtGui.QFont.Monospace)
+        self.text = QtWidgets.QPlainTextEdit()
+        self.text.setLineWrapMode(QtWidgets.QPlainTextEdit.NoWrap)
+        self.text.setWordWrapMode(QtGui.QTextOption.NoWrap)
+        self.text.setMinimumWidth(500)
+        self.text.setMinimumHeight(100)
+        self.text.setFont(font)
+        self.text.setReadOnly(True)
+        self.layout.addWidget(self.text)
+        
+        self.input = QtWidgets.QLineEdit()
+        self.input.setMinimumWidth(500)
+        self.input.returnPressed.connect(self.line_entered)
+        self.layout.addWidget(self.input)
+
 
         self.buffer = None
         self.state_machine = None
@@ -408,6 +410,9 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__(*args, **kwargs)
 
         self.state_label = QtWidgets.QLabel(self)
+        f = QtGui.QFont(self.font())
+        f.setPointSize(36)
+        self.state_label.setFont(f)
         self.qgps_info = QGPSInfo(self)
         self.qgrbl_terminal = QGrblTerminal(self)
         self.spin_widget = SpinWidget(self)
@@ -416,8 +421,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_widget = QtWidgets.QWidget(self)
         self.main_layout = QtWidgets.QVBoxLayout(self.main_widget)
         self.main_layout.addWidget(self.qgps_info)
-        self.main_layout.addWidget(self.qgrbl_terminal)
         self.main_layout.addWidget(self.state_label)
+        self.main_layout.addWidget(self.qgrbl_terminal)
         self.main_layout.addWidget(self.spin_widget)
 
         self.button_layout = QtWidgets.QHBoxLayout()
