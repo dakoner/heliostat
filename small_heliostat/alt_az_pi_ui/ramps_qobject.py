@@ -25,5 +25,4 @@ class QRAMPSObject(QtCore.QObject):
     def on_serial_read(self, *args):
         data = self.serial.readAll()
         decoded = data.data().decode('US_ASCII')
-        print(decoded)
         self.messageSignal.emit(decoded)
