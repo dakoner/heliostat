@@ -1,0 +1,14 @@
+[Unit]
+Description=headless RAMPS service
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/heliostat/small_heliostat/alt_az_pi
+ExecStart=/usr/bin/python3 /home/pi/heliostat/small_heliostat/alt_az_pi/headless_ramps.py
+StandardOutput=journal
+Restart=always
+Type=simple
+
+[Install]
+WantedBy=multi-user.target

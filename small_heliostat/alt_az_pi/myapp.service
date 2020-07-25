@@ -1,0 +1,18 @@
+[Unit]
+Description=My App
+Conflicts=getty@tty7.service
+After=systemd-user-sessions.service getty@tty7.service plymouth-quit.service
+
+[Service]
+Type=notify
+NotifyAccess=all
+WorkingDirectory=/home/pi/heliostat/small_heliostat/alt_az_pi
+ExecStart=/usr/bin/xinit /usr/bin/python3 /home/pi/heliostat/small_heliostat/alt_az_pi/ramps_gui.py -- :0 -nolisten tcp -nocursor
+StandardOutput=journal
+Restart=always
+#WatchdogSec=10s
+Type=simple
+
+[Install]
+WantedBy=graphical.target
+Alias=display-manager.service
