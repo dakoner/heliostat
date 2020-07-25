@@ -37,7 +37,13 @@
          </property>
          <property name="icon">
           <iconset>
-           <normaloff>down_arrow.svg</normaloff>down_arrow.svg</iconset>
+           <normaloff>Images/down_arrow.svg</normaloff>Images/down_arrow.svg</iconset>
+         </property>
+         <property name="autoRepeat">
+          <bool>true</bool>
+         </property>
+         <property name="autoRepeatInterval">
+          <number>400</number>
          </property>
         </widget>
        </item>
@@ -51,7 +57,13 @@
          </property>
          <property name="icon">
           <iconset>
-           <normaloff>right_arrow.svg</normaloff>right_arrow.svg</iconset>
+           <normaloff>Images/right_arrow.svg</normaloff>Images/right_arrow.svg</iconset>
+         </property>
+         <property name="autoRepeat">
+          <bool>true</bool>
+         </property>
+         <property name="autoRepeatInterval">
+          <number>400</number>
          </property>
         </widget>
        </item>
@@ -65,7 +77,13 @@
          </property>
          <property name="icon">
           <iconset>
-           <normaloff>left_arrow.svg</normaloff>left_arrow.svg</iconset>
+           <normaloff>Images/left_arrow.svg</normaloff>Images/left_arrow.svg</iconset>
+         </property>
+         <property name="autoRepeat">
+          <bool>true</bool>
+         </property>
+         <property name="autoRepeatInterval">
+          <number>400</number>
          </property>
         </widget>
        </item>
@@ -79,7 +97,10 @@
          </property>
          <property name="icon">
           <iconset>
-           <normaloff>up_arrow.svg</normaloff>up_arrow.svg</iconset>
+           <normaloff>Images/up_arrow.svg</normaloff>Images/up_arrow.svg</iconset>
+         </property>
+         <property name="autoRepeatInterval">
+          <number>500</number>
          </property>
         </widget>
        </item>
@@ -103,6 +124,12 @@
        </widget>
       </item>
      </layout>
+    </item>
+    <item>
+     <widget class="QPlainTextEdit" name="ramps_output"/>
+    </item>
+    <item>
+     <widget class="QLineEdit" name="lineEdit"/>
     </item>
    </layout>
   </widget>
