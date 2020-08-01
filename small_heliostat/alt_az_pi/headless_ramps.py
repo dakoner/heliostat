@@ -16,12 +16,10 @@ class Tui(QtCore.QObject):
         time.sleep(1.5)
         self.ramps.send_line("G91")
         time.sleep(0.1)
-        self.ramps.send_line("M211 S0")
-        time.sleep(0.1)
         
 
         self.client = MqttClient(self)
-        self.client.hostname = "newpi"
+        self.client.hostname = "localhost"
         self.client.connectToHost()
 
         self.client.stateChanged.connect(self.on_stateChanged)
