@@ -63,9 +63,8 @@ class GRBLESP32Client(QtCore.QObject):
         print("client: send_line", line)
         request = QtNetwork.QNetworkRequest()
         url = QtCore.QUrl(f"http://{HOSTNAME}/command?commandText={line}")
-        print(url)
         request.setUrl(url)
-        replyObject = self.manager.get(request)
+        self.manager.get(request)
 
     def onPong(self, elapsedTime, payload):
         print("onPong - time: {} ; payload: {}".format(elapsedTime, payload))

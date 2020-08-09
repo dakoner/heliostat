@@ -20,7 +20,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__(*args, **kwargs)
 
         #Load the UI Page
-        uic.loadUi('heliostat.ui', self)
+        uic.loadUi('heliostat_ui/heliostat.ui', self)
         self.down_button.clicked.connect(self.down_button_clicked)
         self.up_button.clicked.connect(self.up_button_clicked)
         self.right_button.clicked.connect(self.right_button_clicked)
@@ -102,31 +102,46 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.gps_time.setText(str(msg.datetime))
                 self.sun_position.setText(f"Alt: {result.alt.degree:.2f} Az: {result.az.degree:.2f}")
                 
-                xaz = result.az.degree
-                xalt = (90-result.alt.degree)
+                self.xaz = result.az.degree
+                self.xalt = (90-result.alt.degree)
                 if self.state == STATE_READY:
-                    cmd = "G0 X%.3f Y%.3f\r\n" % (xaz, xalt)
-                    print(cmd)
-                    self.state = STATE_SENDING_COMMAND
-                    self.send_line(cmd)
+                    self.send_move_to_sun()
+                    
+
+    def send_move_to_sun(self):
+        if self.state == STATE_READY:
+            cmd = "G0 X%.3f Y%.3f F100\r\n" % (self.xaz+self.az_nudge.value(), self.xalt+self.alt_nudge.value())
+            print(cmd)
+            self.state = STATE_SENDING_COMMAND
+            self.send_line(cmd)
+        else:
+            print("Ignoring command in STATE", self.state)
 
     def down_button_clicked(self):
-        self.send_line("G0 Y-10")
+        self.alt_nudge.setValue(self.alt_nudge.value() - 0.5)
+        if self.state == STATE_READY:
+            self.send_move_to_sun()
     
     def up_button_clicked(self):
-        self.send_line("G0 Y10")
+        self.alt_nudge.setValue(self.alt_nudge.value() + 0.5)
+        if self.state == STATE_READY:
+            self.send_move_to_sun()
 
     def right_button_clicked(self):
-        self.send_line("G0 X10")
+        self.az_nudge.setValue(self.az_nudge.value() + 0.5)
+        if self.state == STATE_READY:
+            self.send_move_to_sun()
     
     def left_button_clicked(self):
-        self.send_line("G0 X-10")
+        self.az_nudge.setValue(self.az_nudge.value() - 0.5)
+        if self.state == STATE_READY:
+            self.send_move_to_sun()
   
     def home_x_button_clicked(self):
-        self.send_line("G28 X")
+        self.send_line("$HX")
   
     def home_y_button_clicked(self):
-        self.send_line("G28 Y")
+        self.send_line("$HY")
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
