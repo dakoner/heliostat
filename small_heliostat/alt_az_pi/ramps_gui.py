@@ -21,7 +21,7 @@ class Window(QMainWindow):
         self.setFixedSize(*RESOLUTION)
 
         self.client = MqttClient(self)
-        self.client.hostname = "newpi"
+        self.client.hostname = "localhost"
         self.client.connectToHost()
                                 
         self.label = QLabel(parent=self)
