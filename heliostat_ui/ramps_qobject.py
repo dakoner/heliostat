@@ -8,14 +8,14 @@ class QRAMPSObject(QtCore.QObject):
         super(QtCore.QObject, self).__init__(*args, **kwargs)
 
         self.serial = QSerialPort()
-        port = "COM11"
+        port = "COM12"
         self.serial.setPortName(port)
         if self.serial.open(QtCore.QIODevice.ReadWrite):
             self.serial.setDataTerminalReady(True)
             self.serial.setBaudRate(115200)
             self.serial.readyRead.connect(self.on_serial_read)
         else:
-            print("Failed to open serial port")
+            print("Failed to open RAMPS serial port", port)
 
         
     def send_line(self, line):
@@ -23,6 +23,6 @@ class QRAMPSObject(QtCore.QObject):
         self.serial.writeData(b)
         
     def on_serial_read(self, *args):
-        data = self.serial.readAll()
+        data = self.serial.readLine()
         decoded = data.data().decode('US_ASCII')
         self.messageSignal.emit(decoded)

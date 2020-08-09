@@ -7,7 +7,7 @@ from PyQt5.QtCore import Qt, QTimer, QRect, QObject, pyqtSignal, QThread
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import pyqtSlot
 import picamera
-from ramps_qobject import QRAMPSObject
+from mqtt_qobject import MqttClient
 from pi_camera_qobject import QPiCamera, RESOLUTION
 TIMER_TICK=1
 
@@ -20,13 +20,10 @@ class Window(QMainWindow):
         self.setWindowTitle("My Awesome App")
         self.setFixedSize(*RESOLUTION)
 
-        self.ramps = QRAMPSObject()
-        time.sleep(1)
-        self.ramps.send_line("G91")
-        time.sleep(0.1)
-        self.ramps.send_line("M211 S0")
-        time.sleep(0.1)
-        
+        self.client = MqttClient(self)
+        self.client.hostname = "localhost"
+        self.client.connectToHost()
+                                
         self.label = QLabel(parent=self)
         self.label.show()
         self.qimage = QImage(RESOLUTION[0], RESOLUTION[1], QImage.Format_RGB888)
@@ -34,7 +31,7 @@ class Window(QMainWindow):
 
         up_button = QPushButton("Up", parent=self)
         up_button.setAutoRepeat(True)
-        up_button.setAutoRepeatInterval(300)
+        up_button.setAutoRepeatInterval(150)
         up_button.move(400, 10)
         up_button.setFixedSize(120,60)
         up_button.show()
@@ -42,7 +39,7 @@ class Window(QMainWindow):
 
         down_button = QPushButton("Down", parent=self)
         down_button.setAutoRepeat(True)
-        down_button.setAutoRepeatInterval(300)
+        down_button.setAutoRepeatInterval(150)
         down_button.move(400, 400)
         down_button.setFixedSize(120,60)
         down_button.show()
@@ -50,7 +47,7 @@ class Window(QMainWindow):
 
         left_button = QPushButton("Left", parent=self)
         left_button.setAutoRepeat(True)
-        down_button.setAutoRepeatInterval(300)
+        down_button.setAutoRepeatInterval(150)
         left_button.move(10, 240)
         left_button.setFixedSize(120,60)
         left_button.show()
@@ -58,7 +55,7 @@ class Window(QMainWindow):
 
         right_button = QPushButton("Right", parent=self)
         right_button.setAutoRepeat(True)
-        right_button.setAutoRepeatInterval(300)
+        right_button.setAutoRepeatInterval(150)
         right_button.move(675, 240)
         right_button.setFixedSize(120,60)
         right_button.show()
@@ -74,19 +71,19 @@ class Window(QMainWindow):
 
     def on_up_button(self):
         p = self.label.pos()
-        self.ramps.send_line("G0 Y1")
+        self.client.publish("heliostat/ramps/command", "G0 Y1")
 
     def on_down_button(self):
         p = self.label.pos()
-        self.ramps.send_line("G0 Y-1")
+        self.client.publish("heliostat/ramps/command", "G0 Y-1")
 
     def on_left_button(self):
         p = self.label.pos()
-        self.ramps.send_line("G0 X-1")
+        self.client.publish("heliostat/ramps/command", "G0 X-1")
 
     def on_right_button(self):
         p = self.label.pos()
-        self.ramps.send_line("G0 X1")
+        self.client.publish("heliostat/ramps/command", "G0 X1")
 
     @pyqtSlot(bytes)
     def on_qpicameraSignal(self, img):
