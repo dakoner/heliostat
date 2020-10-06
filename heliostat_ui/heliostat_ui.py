@@ -109,8 +109,12 @@ class MainWindow(QtWidgets.QMainWindow):
                     
 
     def send_move_to_sun(self):
+        if not self.tracking.checkState():
+            return
+
         if self.state == STATE_READY:
-            cmd = "G0 X%.3f Y%.3f F100\r\n" % (self.xaz+self.az_nudge.value(), self.xalt+self.alt_nudge.value())
+            
+            cmd = "G0 X%.3f Y%.3f F500\r\n" % (self.xaz+self.az_nudge.value(), self.xalt+self.alt_nudge.value())
             print(cmd)
             self.state = STATE_SENDING_COMMAND
             self.send_line(cmd)

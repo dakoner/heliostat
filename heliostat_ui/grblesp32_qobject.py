@@ -53,7 +53,8 @@ class GRBLESP32Client(QtCore.QObject):
         self.messageSignal.emit(str(message, 'ascii'))
         
     def do_ping(self):
-        self.client.ping(b"0")
+        pass
+        #self.client.ping(b"0")
 
     def do_status(self):        
         self.replyObject = self.manager.get(self.request)

@@ -245,17 +245,6 @@
           </property>
          </widget>
         </item>
-        <item row="1" column="0">
-         <widget class="QPushButton" name="left_button">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="icon">
-           <iconset resource="resources.qrc">
-            <normaloff>:/Images/Images/left_arrow.svg</normaloff>:/Images/Images/left_arrow.svg</iconset>
-          </property>
-         </widget>
-        </item>
         <item row="0" column="1">
          <widget class="QPushButton" name="up_button">
           <property name="text">
@@ -264,6 +253,17 @@
           <property name="icon">
            <iconset resource="resources.qrc">
             <normaloff>:/Images/Images/up_arrow.svg</normaloff>:/Images/Images/up_arrow.svg</iconset>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QPushButton" name="left_button">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="resources.qrc">
+            <normaloff>:/Images/Images/left_arrow.svg</normaloff>:/Images/Images/left_arrow.svg</iconset>
           </property>
          </widget>
         </item>
@@ -297,6 +297,13 @@
           <property name="icon">
            <iconset resource="resources.qrc">
             <normaloff>:/Images/Images/home.svg</normaloff>:/Images/Images/home.svg</iconset>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QCheckBox" name="tracking">
+          <property name="text">
+           <string>Tracking</string>
           </property>
          </widget>
         </item>

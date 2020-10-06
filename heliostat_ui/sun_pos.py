@@ -2,6 +2,8 @@ import astropy.coordinates as coord
 from astropy.time import Time
 import astropy.units as u
 
+import datetime
+
 def getSunPos(latitude, longitude, t):
     loc = coord.EarthLocation(lon=longitude * u.deg,
                               lat=latitude * u.deg)
@@ -10,3 +12,6 @@ def getSunPos(latitude, longitude, t):
     sun = coord.get_sun(now)
     result = sun.transform_to(altaz)
     return result
+
+if __name__ == '__main__':
+    print(getSunPos(40, 40, datetime.datetime.now()))
