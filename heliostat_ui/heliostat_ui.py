@@ -97,6 +97,9 @@ class MainWindow(QtWidgets.QMainWindow):
             print("failed to parse")
         else:
             if (msg.sentence_type == 'RMC'):
+                if msg.latitude == 0 and msg.longitude == 0:
+                    print("Ignoring obviously wrong", msg)
+                    return
                 result = getSunPos(msg.latitude, msg.longitude, msg.datetime)
                 self.gps_location.setText(f"{msg.latitude:.2f} {msg.longitude:.2f}")
                 self.gps_time.setText(str(msg.datetime))
@@ -115,7 +118,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.state == STATE_READY:
             
             cmd = "G0 X%.3f Y%.3f F500\r\n" % (self.xaz+self.az_nudge.value(), self.xalt+self.alt_nudge.value())
-            print(cmd)
             self.state = STATE_SENDING_COMMAND
             self.send_line(cmd)
         else:

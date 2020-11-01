@@ -35,7 +35,6 @@ class GRBLESP32Client(QtCore.QObject):
         #self.status_timer.start(1000)
 
     def onText(self, message):
-        print("onText: message", message)
         if message.startswith("CURRENT_ID"):
             self.current_id = message.split(':')[1]
             print("Current id is:", self.current_id)
